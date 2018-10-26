@@ -43,29 +43,31 @@ sint = C.skipSpace >> int
 int = liftM floor C.scientific
 sdbl = C.skipSpace >>= return C.double
 
-parsePoints :: C.Parser ([[Double]], [[Double]])
+readPoly = do
+  sidePoints <- sint
+  res <- C.count sidePoints sint
+  return res
+
+parsePoints :: C.Parser ([[Double]], [[Int]])
 parsePoints = do
   str <- "OFF"
---  C.skipSpace
   m <- sint
   n <- sint
   garbage <- sint
-  points <- C.count m (C.count n sdbl)
-  let readPoly = do
-        sides <- sint
-        res <- C.count sides sdbl
-        return res
-  -- sides <- C.count m (readPoly)
-  let sides = [[2]]
+
+  let dimensions = 3
+  points <- C.count m (C.count dimensions sdbl)
+
+
+  sides <- C.count n (readPoly)
+
   return (points,sides)
 
-parseIt :: IO ([[Double]],[[Double]])
+parseIt :: IO ([[Double]],[[Int]])
 parseIt = do
   contents <- B.getContents
   print contents
   let filtered = fileSansComments contents
-  print "filtered"
-  print filtered
   let res = C.parseOnly parsePoints filtered
   either (error . show) return res
 
@@ -73,8 +75,9 @@ main = do
   res <- parseIt
   let makeThese p = makePolygon (fst res) p
   let polygons = map (\p -> makeThese p) (snd res)
-  mapM_ print polygons
+  mapM_ (putStrLn . show) polygons
   let triangles = concat . makeTriangles $ polygons
-  -- mapM_ print triangles
+  putStrLn "triangles:"
+  mapM_ print triangles
   print "done"
 
