@@ -3,7 +3,6 @@ import System.Environment
 import Control.Monad
 import qualified Data.Attoparsec.ByteString.Char8 as C
 import qualified Data.ByteString.Char8 as B
-import Data.List.Split (splitOn)
 
 gabestuff = [[0,0]
             ,[0,1]
@@ -19,6 +18,7 @@ makePolygon allPoints (x:xs) =
   get2d allPoints x ++ makePolygon allPoints xs
 
 -- make triangles from polygon using "fan out" approach
+makeTriangles :: [[Double]] -> [[Double]]
 makeTriangles [a,b,c] = [a,b,c]
 makeTriangles (x:xs) = (x:nextTwo) ++ (makeTriangles $ x:afterTwo)
   where nextTwo = take 2 xs
@@ -57,16 +57,16 @@ parsePoints = do
 
   let dimensions = 3
   points <- C.count m (C.count dimensions sdbl)
-
-
   sides <- C.count n (readPoly)
 
   return (points,sides)
 
+myPrint x = (putStrLn . show) x
+
 parseIt :: IO ([[Double]],[[Int]])
 parseIt = do
   contents <- B.getContents
-  print contents
+  myPrint contents
   let filtered = fileSansComments contents
   let res = C.parseOnly parsePoints filtered
   either (error . show) return res
@@ -75,8 +75,8 @@ main = do
   res <- parseIt
   let makeThese p = makePolygon (fst res) p
   let polygons = map (\p -> makeThese p) (snd res)
-  mapM_ (putStrLn . show) polygons
-  let triangles = concat . makeTriangles $ polygons
+  mapM_ myPrint polygons
+  let triangles = concat $ map makeTriangles polygons
   putStrLn "triangles:"
   mapM_ print triangles
   print "done"
