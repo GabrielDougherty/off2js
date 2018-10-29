@@ -4,14 +4,9 @@ import Control.Monad
 import qualified Data.Attoparsec.ByteString.Char8 as C
 import qualified Data.ByteString.Char8 as B
 
-gabestuff = [[0,0]
-            ,[0,1]
-            ,[3,4]
-            ,[5,8]]
-
 get2d lst index = [x |
-                   (i,x) <- zip [0..] lst,
-                   i == index]
+                    (i,x) <- zip [0..] lst,
+                    i == index]
 
 makePolygon allPoints [] = []
 makePolygon allPoints (x:xs) =
@@ -62,6 +57,17 @@ parsePoints = do
   return (points,sides)
 
 myPrint x = (putStrLn . show) x
+
+makeBary :: Int -> B.ByteString
+makeBary numTriangles = B.intercalate "," $ replicate numTriangles tri
+  where
+    tri = "[1,0,0],[0,1,0],[0,0,1]"
+
+strList :: [Double] -> B.ByteString
+strList lst = B.intercalate "," $ map (B.pack . show) lst
+
+jscriptModel triangles bc modelName = "function " ++ modelName ++
+  "() {\n\tthis.triangles = " -- TODO: finish this part
 
 parseIt :: IO ([[Double]],[[Int]])
 parseIt = do
