@@ -26,7 +26,7 @@ makeFileLines input = B.split '\n' input
 filteredLines :: [B.ByteString] -> [B.ByteString]
 filteredLines lines =
   foldl (\ lst elem ->
-            if (B.head elem) == '#'
+            if (B.length elem) == 0 || (B.head elem) == '#'
             then lst
             else lst ++ [elem]) [] lines
 
@@ -37,11 +37,15 @@ fileSansComments input = glueLines . filteredLines . makeFileLines $ input
 -- https://stackoverflow.com/questions/8366093/how-do-i-parse-a-matrix-of-integers-in-haskell
 sint = C.skipSpace >> int
 int = liftM floor C.scientific
-sdbl = C.skipSpace >>= return C.double
+sdbl = C.skipSpace >> liftM id C.double
+
+skipRestOfLine = C.skipWhile (\c -> c /= '\n' && c /= '\r')
 
 readPoly = do
   sidePoints <- sint
   res <- C.count sidePoints sint
+  skipRestOfLine
+
   return res
 
 parsePoints :: C.Parser ([[Double]], [[Int]])
@@ -49,7 +53,7 @@ parsePoints = do
   str <- "OFF"
   m <- sint
   n <- sint
-  garbage <- sint
+  sint
 
   let dimensions = 3
   points <- C.count m (C.count dimensions sdbl)
@@ -77,7 +81,7 @@ str2dList lst = "[" ++ L.intercalate "," (map strList lst) ++ "]"
 jscriptModel :: [[Double]] -> Int -> String -> String
 jscriptModel triangles bcSize modelName = "function " ++ modelName ++
   "() {\n\tthis.triangles = " ++ str2dList triangles ++ ";" ++
-  "\nthis.bc = " ++ makeBary bcSize  ++ ";" ++ "\n};"
+  "\n\tthis.bc = " ++ makeBary bcSize  ++ ";" ++ "\n};"
 
 scaleTriangles :: [[Double]] -> [[Double]]
 scaleTriangles triangles = scaled
@@ -91,8 +95,8 @@ shiftPositive triangles = shifted
   where
     min = minimum $ map minimum triangles
     offset = if min < 0
-            then -min
-            else 0
+             then -min
+             else 0
     shifted = map (map (+ offset)) triangles
 
 -- shift a triangle list from 1,0 dimensions to 0.5,-0.5
@@ -109,10 +113,21 @@ parseIt = do
   let res = C.parseOnly parsePoints filtered
   either (error . show) return res
 
+
+modelFromArgs :: [String] -> String
+modelFromArgs args =
+  if length(args) == 2 && args!!0 == "-modelName"
+  then args!!1
+  else "CubeModel"
+
 main = do
+  blah <- getArgs
+  let modelName = modelFromArgs blah
+
   res <- parseIt
   let makeThese p = makePolygon (fst res) p
   let polygons = map (\p -> makeThese p) (snd res)
   let triangles = concat $ map makeTriangles polygons
-  putStrLn $ jscriptModel triangles (length(triangles)) ("BobsBurgers"::String)
+  let numTriangles = length(triangles) `div` 3
+  putStrLn $ jscriptModel triangles numTriangles modelName
 
