@@ -1,0 +1,111 @@
+<html>
+<head>
+<meta charset="utf-8"/>
+
+<script id="vertex-shader" type="x-shader/x-vertex" >
+attribute vec4 vPosition;
+attribute vec3 vBC;
+attribute vec4 vColor;
+
+uniform mat4 Transform;
+uniform float vFillType;
+
+varying vec3 f_BC;
+varying vec4 f_Color;
+varying float f_FillType;
+
+void main() {
+
+    gl_Position = Transform * vPosition;
+    f_BC = vBC;
+    f_Color = vec4(1.0, 0.0, 0.0, 1.0);
+    f_FillType = vFillType;
+}
+</script>
+
+<script id="fragment-shader" type="x-shader/x-fragment">
+#extension GL_OES_standard_derivatives : enable
+
+precision mediump float;
+varying vec4 f_Color;
+varying vec3 f_BC;
+varying float f_FillType;
+
+    float edgeFactor(){
+        vec3 d = fwidth(f_BC);
+        vec3 a3 = smoothstep(vec3(0.0), d*1.5, f_BC);
+        return min(min(a3.x, a3.y), a3.z);
+    }
+
+    void main(){
+
+        if (f_FillType >= 1.0) {
+             // alpha by edge
+             if(gl_FrontFacing){
+                 gl_FragColor = vec4(0,0.0,0.0, (1.0-edgeFactor())*0.95);
+             } else {
+                 gl_FragColor = vec4(0.0, 0.0, 0.0, (1.0-edgeFactor())*0.7);
+             }
+	     
+	 } else {
+	     if (gl_FrontFacing) {
+	  	gl_FragColor = f_Color;
+	     } else {
+	  	gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+	     }
+	 }
+}
+</script>
+
+<script type="text/javascript" src="../Common/webgl-utils.js"></script>
+<script type="text/javascript" src="../Common/initShaders.js"></script>
+<script type="text/javascript" src="../Common/MV.js"></script>
+<script type="text/javascript" src="mush.js"></script>  
+<script type="text/javascript" src="offTeapot.js"></script>
+<script src="https://cdn.rawgit.com/google/code-prettify/master/loader/run_prettify.js"></script>
+
+<style>
+input {
+    text-align: right;
+}
+</style>
+
+</head>
+
+<body>
+     <h1>Care for Tea?</h1>
+<script>
+    var canvas = new Canvas(500, 500);
+</script>
+
+<p>
+
+<button type="button" onclick="canvas.FlipDir(),canvas.Redisplay()">
+   Triangle Dir
+</button>
+
+<button type="button" onclick="canvas.ChangeShader(),canvas.Redisplay()">
+   Change Shader
+</button>
+
+ <form >
+      <input type="radio" name="face" value="0" checked
+             onchange="canvas.ChangeFace(this.value), canvas.Redisplay()">
+             BACK 
+     </input>
+      <input type="radio" name="face" value="1" 
+             onchange="canvas.ChangeFace(this.value), canvas.Redisplay()">
+             FRONT 
+     </input>
+      <input type="radio" name="face" value="2" 
+             onchange="canvas.ChangeFace(this.value), canvas.Redisplay()">
+             FRONT_AND_BACK 
+     </input>
+      <input type="radio" name="face" value="3" 
+             onchange="canvas.ChangeFace(this.value), canvas.Redisplay()">
+             none 
+     </input>
+   </form>
+
+
+</body>
