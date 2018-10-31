@@ -4,6 +4,7 @@ import Control.Monad
 import qualified Data.Attoparsec.ByteString.Char8 as C
 import qualified Data.ByteString.Char8 as B
 import qualified Data.List as L
+import Text.Printf
 
 get2d lst index = [x |
                     (i,x) <- zip [0..] lst,
@@ -70,7 +71,7 @@ makeBary numTriangles = "[" ++ csv ++ "]"
     csv = L.intercalate "," $ replicate numTriangles tri
 
 bstrList :: [Double] -> String
-bstrList lst =  L.intercalate "," $ map show lst
+bstrList lst =  L.intercalate "," $ map (printf "%.9f") lst
 
 strList :: [Double] -> String
 strList lst = "[" ++ bstrList lst ++ "]"
@@ -87,17 +88,15 @@ scaleTriangles :: [[Double]] -> [[Double]]
 scaleTriangles triangles = scaled
   where
     max = maximum $ map maximum triangles
-    scaled = map (map (* max)) triangles
+    scaled = map (map (* (1/max))) triangles
 
 -- shift a triangle list to all positive values
 shiftPositive :: [[Double]] -> [[Double]]
 shiftPositive triangles = shifted
   where
-    min = minimum $ map minimum triangles
-    offset = if min < 0
-             then -min
-             else 0
-    shifted = map (map (+ offset)) triangles
+    offset triangle = map (\p -> (snd p) - min (fst p)) . zip [0..] $ triangle
+    min coord =  minimum $ map (!!coord) triangles
+    shifted = map offset triangles
 
 -- shift a triangle list from 1,0 dimensions to 0.5,-0.5
 shiftUnitCube :: [[Double]] -> [[Double]]
@@ -105,6 +104,8 @@ shiftUnitCube triangles = shifted
   where
     amt = -0.5
     shifted = map (map (+ amt)) triangles
+
+fixTriangles triangle = shiftUnitCube . scaleTriangles . shiftPositive $ triangle
 
 parseIt :: IO ([[Double]],[[Int]])
 parseIt = do
@@ -129,5 +130,6 @@ main = do
   let polygons = map (\p -> makeThese p) (snd res)
   let triangles = concat $ map makeTriangles polygons
   let numTriangles = length(triangles) `div` 3
-  putStrLn $ jscriptModel triangles numTriangles modelName
+  let fixed = jscriptModel (fixTriangles triangles) numTriangles modelName
+  putStrLn $ fixed
 
