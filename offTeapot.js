@@ -1,6 +1,6 @@
 var m = new Mushroom();
 var teapotTriangles = m.triangles;
-var teapotBC = m.bc;
+var teapotBC = m.BC;
 
 function MakeCanvas(width, height, locID) {
 

@@ -70,11 +70,11 @@ makeBary numTriangles = "[" ++ csv ++ "]"
     tri = "[1,0,0],[0,1,0],[0,0,1]"
     csv = L.intercalate "," $ replicate numTriangles tri
 
-bstrList :: [Double] -> String
-bstrList lst =  L.intercalate "," $ map (printf "%.9f") lst
-
 strList :: [Double] -> String
-strList lst = "[" ++ bstrList lst ++ "]"
+strList lst = "[" ++ csv ++ "]"
+  where
+    csv = L.intercalate "," $ map showDigits lst
+    showDigits = printf "%.9f"
 
 str2dList :: [[Double]] -> String
 str2dList lst = "[" ++ L.intercalate "," (map strList lst) ++ "]"
@@ -82,20 +82,21 @@ str2dList lst = "[" ++ L.intercalate "," (map strList lst) ++ "]"
 jscriptModel :: [[Double]] -> Int -> String -> String
 jscriptModel triangles bcSize modelName = "function " ++ modelName ++
   "() {\n\tthis.triangles = " ++ str2dList triangles ++ ";" ++
-  "\n\tthis.bc = " ++ makeBary bcSize  ++ ";" ++ "\n};"
+  "\n\tthis.BC = " ++ makeBary bcSize  ++ ";" ++ "\n};"
 
 scaleTriangles :: [[Double]] -> [[Double]]
 scaleTriangles triangles = scaled
   where
-    max = maximum $ map maximum triangles
-    scaled = map (map (* (1/max))) triangles
+    triMax = maximum $ map maximum triangles
+    scaled = map (map (* (1/triMax))) triangles
 
 -- shift a triangle list to all positive values
 shiftPositive :: [[Double]] -> [[Double]]
 shiftPositive triangles = shifted
   where
-    offset triangle = map (\p -> (snd p) - min (fst p)) . zip [0..] $ triangle
-    min coord =  minimum $ map (!!coord) triangles
+    offset triangle = map (\(i,p) -> p - triMin i) .
+      zip [0..] $ triangle
+    triMin coord =  minimum $ map (!!coord) triangles
     shifted = map offset triangles
 
 -- shift a triangle list from 1,0 dimensions to 0.5,-0.5
@@ -105,7 +106,8 @@ shiftUnitCube triangles = shifted
     amt = -0.5
     shifted = map (map (+ amt)) triangles
 
-fixTriangles triangle = shiftUnitCube . scaleTriangles . shiftPositive $ triangle
+fixTriangles triangle = shiftUnitCube . scaleTriangles .
+  shiftPositive $ triangle
 
 parseIt :: IO ([[Double]],[[Int]])
 parseIt = do
@@ -122,12 +124,12 @@ modelFromArgs args =
   else "CubeModel"
 
 main = do
-  blah <- getArgs
-  let modelName = modelFromArgs blah
+  progArgs <- getArgs
+  let modelName = modelFromArgs progArgs
 
-  res <- parseIt
-  let makeThese p = makePolygon (fst res) p
-  let polygons = map (\p -> makeThese p) (snd res)
+  (points,sides) <- parseIt
+  let makeThese p = makePolygon points p
+  let polygons = map (\p -> makeThese p) sides
   let triangles = concat $ map makeTriangles polygons
   let numTriangles = length(triangles) `div` 3
   let fixed = jscriptModel (fixTriangles triangles) numTriangles modelName
