@@ -1,0 +1,38 @@
+#+TITLE:Homework 4 Math Notes
+* Running the program
+To build the program on a debian-based Linux distribution, run:
+
+~sudo apt install haskell-platform libghc-attoparsec-dev~
+
+~ghc off2js.hs~
+
+Then, to translate a mushroom OFF model, run:
+
+~./off2js -modelName Mushroom <mushroom.off > mush.js~
+* Scaling method
+To properly scale the triangle points within the [-0.5,0.5] unit cube, I applied a series of transformations to the points.
+** Butting points against first quadrant and origin, to [0,0,0], [Inf,Inf,Inf]
+First, I moved the bounding box of the points to butt up against the first quadrant and the origin. I accomplished this by finding the minimum x, y, and z coordinateds, then adding -1 times each minimum piecewise to each x, y, and z.
+#+BEGIN_SRC 
+let min = minimum x value
+for each x:
+	x = x - min
+do the same for y,z
+#+END_SRC
+** Scaling the points to [0,0,0], [1,1,1]
+Then, I scaled all of the points to the range [0,0,0], [1,1,1] by finding the maximum of all of the points, and multiplying all of the points by said maximum.
+#+BEGIN_SRC 
+let max = maximum value of all points (after previous step)
+for each point:
+	x,y,z = (x,y,z)/max
+#+END_SRC
+
+** Shifting points to [-.5,-.5,-.5], [.5,.5,.5]
+Then, I shifted all of the points to the range [-.5,-.5,-.5], [.5,.5,.5] by subtracting 5 from all of the points.
+#+BEGIN_SRC 
+for each point:
+	x,y,z = (x,y,z) -.5
+#+END_SRC
+
+* Building the Barycentric coordinates
+To build the barycentric coordinates, I simply produced a list of the points [1,0,0],[0,1,0],[0,0,1] t times, where t is the number of triangles, or 1/(number of points)
