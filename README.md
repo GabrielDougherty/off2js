@@ -1,0 +1,61 @@
+Running the program
+===================
+
+To build the program on a debian-based Linux distribution, run:
+
+`sudo apt install haskell-platform libghc-attoparsec-dev`
+
+`ghc off2js.hs`
+
+Then, to translate a mushroom OFF model, run:
+
+`./off2js -modelName Mushroom < mushroom.off > mush.js`
+
+Explanation
+===========
+
+Scaling method
+--------------
+
+To properly scale the triangle points within the \[-0.5,0.5\] unit cube,
+I applied a series of transformations to the points.
+
+### Butting points against first quadrant and origin, to \[0,0,0\], \[Inf,Inf,Inf\]
+
+First, I moved the bounding box of the points to butt up against the
+first quadrant and the origin. I accomplished this by finding the
+minimum x, y, and z coordinates, then adding -1 times each minimum
+piecewise to each x, y, and z.
+
+    let min<Q> := minimum value of all points in the Q position
+
+    shiftUp(x) = x - minX
+    shiftUp(y) = y - minY
+    shiftUp(z) = z - minZ
+
+### Scaling the points to \[0,0,0\], \[1,1,1\]
+
+Then, I scaled all of the points to the range \[0,0,0\], \[1,1,1\] by
+finding the maximum of all of the points, and multiplying all of the
+points by said maximum.
+
+    let max := maximum value of all points (after previous step)
+
+    scale(q) = q/max
+
+### Shifting points to \[-.5,-.5,-.5\], \[.5,.5,.5\]
+
+Then, I shifted all of the points to the range \[-.5,-.5,-.5\],
+\[.5,.5,.5\] by subtracting .5 from all of the points.
+
+    shiftDown(q) = q - .5
+
+After these transformations have been applied, all points should be in
+the proper range of the unit cube.
+
+Building the Barycentric coordinates
+------------------------------------
+
+To build the Barycentric coordinates, I simply produced a list of the
+points \[1,0,0\],\[0,1,0\],\[0,0,1\] t times, where t is the number of
+triangles, or (number of points)/3
